@@ -51,7 +51,7 @@ while True:
     
     # Classify the image using the neural network
     with torch.no_grad():
-        output = model(image)
+        output = model(image)   
         _, predicted = torch.max(output.data, 1)
     
     # Display the classification result on the camera image
