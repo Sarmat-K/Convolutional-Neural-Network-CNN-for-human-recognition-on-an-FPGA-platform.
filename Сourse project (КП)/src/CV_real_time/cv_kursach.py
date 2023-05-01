@@ -28,7 +28,7 @@ class Net(nn.Module):
 
 # Load the trained model from the .pth file
 model = Net()
-model.load_state_dict(torch.load('person_detection_model.pth'))
+model.load_state_dict(torch.load('D:/Курсовой проект/model/person_detection_model.pth'))
 model.eval()
 
 # Define the image transformations
