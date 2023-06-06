@@ -6,3 +6,4 @@ annotations/person_keypoints_train2017.json
 annotations/person_keypoints_val2017.json
 Pre-graduate practice (Практика)/Src/Models/PyTorch_COCO_model.pth
 .vscode
+.vscode copy/settings.json
