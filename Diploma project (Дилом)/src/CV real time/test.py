@@ -1,69 +1,84 @@
 import cv2
 import torch
-import torch.nn as nn
 import torchvision.transforms as transforms
+from torchvision.models.detection import fasterrcnn_resnet50_fpn
 
-# Define the neural network architecture
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1)
-        self.fc1 = nn.Linear(32 * 8 * 8, 256)
-        self.fc2 = nn.Linear(256, 2)
-    
-    def forward(self, x):
-        x = self.conv1(x)
-        x = nn.functional.relu(x)
-        x = self.pool(x)
-        x = self.conv2(x)
-        x = nn.functional.relu(x)
-        x = self.pool(x)
-        x = x.view(-1, 32 * 8 * 8)
-        x = self.fc1(x)
-        x = nn.functional.relu(x)
-        x = self.fc2(x)
-        return x
-
-# Load the trained model from the .pth file
-model = Net()
-model.load_state_dict(torch.load('D:/Курсовой проект/Diploma project (Дилом)/src/person_detection_model_v3_74.pth'))
-# model.load_state_dict(torch.load('D:/Курсовой проект/Сourse project (КП)/src/Train model/person_detection_model.pth'))
+# Load the pre-trained model
+model = fasterrcnn_resnet50_fpn(pretrained=True)
 model.eval()
 
-# Define the image transformations
+# Set device to GPU if available, otherwise use CPU
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = model.to(device)
+
+# Load the COCO class labels
+LABELS = [
+    'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train',
+    'truck', 'boat', 'traffic light', 'fire hydrant', 'N/A', 'stop sign',
+    'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
+    'elephant', 'bear', 'zebra', 'giraffe', 'N/A', 'backpack', 'umbrella',
+    'N/A', 'N/A', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard',
+    'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard',
+    'surfboard', 'tennis racket', 'bottle', 'N/A', 'wine glass', 'cup', 'fork',
+    'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli',
+    'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant',
+    'bed', 'N/A', 'dining table', 'N/A', 'N/A', 'toilet', 'N/A', 'tv', 'laptop',
+    'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster',
+    'sink', 'refrigerator', 'N/A', 'book', 'clock', 'vase', 'scissors',
+    'teddy bear', 'hair drier', 'toothbrush'
+]
+
+# Transformations to apply to input image
 transform = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.Resize((32, 32)),
     transforms.ToTensor(),
 ])
 
-# Open the camera
-cap = cv2.VideoCapture(0)
+# Function to perform object detection on the input image
+def detect_objects(image):
+    image = transform(image).unsqueeze(0).to(device)
+    outputs = model(image)
+    
+    # Get the predicted bounding boxes, labels, and scores
+    boxes = outputs[0]['boxes'].detach().cpu().numpy()
+    labels = outputs[0]['labels'].detach().cpu().numpy()
+    scores = outputs[0]['scores'].detach().cpu().numpy()
 
-# Classify the camera images
-while True:
-    # Capture the camera image
-    ret, frame = cap.read()
+    # Filter out detections with low confidence
+    threshold = 0.5
+    filtered_boxes = boxes[scores > threshold]
+    filtered_labels = labels[scores > threshold]
     
-    # Convert the camera image to a PyTorch tensor
-    image = transform(frame).unsqueeze(0)
+    # Draw bounding boxes on the image
+    for box, label in zip(filtered_boxes, filtered_labels):
+        x1, y1, x2, y2 = box.astype(int)
+        cv2.rectangle(image, (x1, y1), (x2, y2), (255, 0, 0), 2)
+        cv2.putText(image, LABELS[label], (x1, y1 - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
     
-    # Classify the image using the neural network
-    with torch.no_grad():
-        output = model(image)
-        _, predicted = torch.max(output.data, 1)
-    
-    # Display the classification result on the camera image
-    label = 'person' if predicted.item() == 1 else 'not a person'
-    cv2.putText(frame, label, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-    cv2.imshow('Person Detection', frame)
-    
-    # Exit on ESC
-    if cv2.waitKey(1) == 27:
-        break
+    return image
 
-# Release the camera and close the window
-cap.release()
-cv2.destroyAllWindows()
+# Function to read frames from the camera and perform object detection
+def process_camera_feed():
+    capture = cv2.VideoCapture(0)  # Use the default camera (change index if needed)
+    while True:
+        ret, frame = capture.read()
+        if not ret:
+            break
+        
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame = detect_objects(frame)
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        
+        cv2.imshow('Object Detection', frame)
+        
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    
+    capture.release()
+    cv2.destroyAllWindows()
+    
+    
+
+# Start processing the camera feed
+process_camera_feed()
+
