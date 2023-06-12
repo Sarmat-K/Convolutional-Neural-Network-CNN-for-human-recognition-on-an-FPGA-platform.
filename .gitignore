@@ -9,3 +9,6 @@ Pre-graduate practice (Практика)/Src/Models/PyTorch_COCO_model.pth
 Diploma project (Дилом)/src/CNN model/yolov3.weights
 Diploma project (Дилом)/src/CNN model/yolov3.cfg
 Diploma project (Дилом)/Data/
+Diploma project (Дилом)/src/OPNX_FPGA/person_detection_model.onnx
+Diploma project (Дилом)/src/OPNX_FPGA/fasterrcnn_resnet50_fpn.onnx
+Diploma project (Дилом)/src/OPNX_FPGA/model.onnx
