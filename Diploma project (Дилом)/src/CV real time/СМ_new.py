@@ -3,7 +3,7 @@ import numpy as np
 import onnxruntime
 
 # Создание сессии ONNX Runtime и загрузка модели
-session = onnxruntime.InferenceSession("D:/Курсовой проект/Diploma project (Дилом)/src/OPNX_FPGA/person_detection_model.onnx")
+session = onnxruntime.InferenceSession("C:/Users/lolol/OneDrive/Документы/Курсовой проект/Diploma project (Дилом)/src/CNN model/person_detection_model.onnx")
 
 # Получение имен входных и выходных тензоров модели
 input_name = session.get_inputs()[0].name
